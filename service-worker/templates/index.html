@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+  <link rel="stylesheet" href="/static/css/main.css">
+  <script src="https://d3js.org/d3.v5.js" charset="utf-8"></script>
+  <title>JavaScript Workers</title>
+</head>
+<body>
+  <h1>JavaScript Workers</h1>
+  <div class="input">
+    <input id="limit" type="text" name="limit" value="" placeholder="Enter number of circles to be displayed" autocomplete="off" style="width: 25rem; padding: 10px; margin-bottom: 3rem" />
+  </div>
+  <div class="container">
+    <div class="start-web-worker">
+      <button id="startWebWorker">Start Web Worker</button>
+    </div>
+    <div class="stop-web-worker">
+      <button id="stopWebWorker">Stop Web Worker</button>
+    </div>
+  </div>
+  <div class="demo"></div>
+  <script>
+    let counter = 0;
+    let graph = d3.select('.demo').append('svg').attr('width', '100vw').attr('height', '80vh');
+
+    const generateCircles = (x, y, color, min = 100) => graph.append('circle').attr('cx', x + min).attr('cy', y + min).attr('r', Math.random() * (min / 2)).style('fill', color);
+
+    const randomColor = () => {
+      let letters = '0123456789ABCDEF';
+      let color = '#';
+      for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+      }
+      return color;
+    }
+
+    let webWorker;
+    const startWebWorker = () => {
+      const limit = parseInt(document.querySelector('#limit').value) || 1000;
+      if (typeof(Worker) !== undefined) {
+        webWorker = new Worker('/static/js/WebWorker.js');
+        webWorker.postMessage(limit); 
+        webWorker.onmessage = event => {
+          console.log(`Event ${event.data}`);
+          event.data && generateCircles(Math.random() * 100, Math.random() * 100, randomColor(), 100 + (counter * 5));
+          counter += 5;
+        }
+      }
+    }
+
+    const stopWorker = () => {
+      if (webWorker !== undefined) {
+        console.log(`%c Terminated Web Worker`,
+          'font-size: 20px; color: #ff0000; text-align: center; margin-left: calc(20%); padding: 5px 0 15px 0;');
+        webWorker.terminate();
+        webWorker = undefined;
+      }
+      graph.html(null);
+    }
+
+    const startButton = document.querySelector('#startWebWorker');
+    startButton.addEventListener('click', function () {
+      startWebWorker();
+    });
+
+    const stopButton = document.querySelector('#stopWebWorker');
+    stopButton.addEventListener('click', function () {
+      stopWorker();
+    });
+  </script>
+</body>
+
+</html>
